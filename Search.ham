@@ -1,0 +1,206 @@
+/*class*/import java.util.ArrayList;
+
+public class Search{
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Eigenschaften / Protperties
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	private Hamster sh;
+	// Spielfeldgröße
+	private int fieldRow = Territorium.getAnzahlReihen();
+	private int fieldCol = Territorium.getAnzahlSpalten();
+	// Start- und Ziel-Feld
+	private Field goal;
+	private Field start;
+	// Arrays zum halten von Informationen.
+	private	ArrayList<Field> queue = new ArrayList<Field>();
+	private ArrayList<Field> visited = new ArrayList<Field>();
+	boolean bInVisited = false;
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Public Methoden und Konstruktoren
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	// Konstruktor -> zu bewegenden Hamster erforderlich
+	public Search(Hamster h){
+		sh = h;
+	}
+	
+	// Initialisiern und ermitteln der Start- und Zielposition
+	public boolean init(){
+		// Startfeld kann immer gefunden werden
+		getStart();
+		// Wenn kein oder mehrere Körner gefunden wurden, sollte ein Fehler ausgegeben werden;
+		return getGrainField();
+	}
+	
+	// Pfad ermitteln
+	public Field findPath(){
+		return searchPathToGrain();
+	}
+	
+	// Pfad laufen und Korn aufnehmen
+	public boolean walkPathGetKorn(Field goalField){
+		walkByPath(getPath(goalField));
+		
+		if(sh.kornDa()){
+			sh.nimm();
+			return true;
+		}
+		return false;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Ermitteln des Weges mit Breitensuche
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	private Field searchPathToGrain(){
+    	// ersten Knoten/Hamster in queue stellen
+    	queue.add(start);
+    	// Solange queue nicht leer, Schleife durchlaufen
+    	while(queue.size() > 0){
+   			// Aktuelles Feld nehmen und aus queue entfernen
+   			Field currField = queue.get(0);
+   			queue.remove(0);
+   			// Feld auf Liste der besuchten Felder setzten
+   			visited.add(currField);
+
+			// Wenn Ziel gefunden Fled zurückgeben
+   			if(currField.column == goal.column && currField.row == goal.row){
+   				return currField;
+   			}
+
+   			// Freie Nachbarfelder ermitteln.   			
+   			ArrayList<Field> freeNeighbours = getFreeNeighbours(currField);
+   			for(int i = 0; i<freeNeighbours.size(); i++){
+				
+				// prüfen ob Nachbarfeld nicht schon besucht wurde...
+				bInVisited = false;
+				for(Field visitedField : visited){
+					if(visitedField.column == freeNeighbours.get(i).column && visitedField.row == freeNeighbours.get(i).row){
+						bInVisited = true;
+						break;
+					}
+				}
+				// ...wenn nicht bearbeiten
+				if(!bInVisited){
+					// Nachbar an queue hinzufügen
+					queue.add(freeNeighbours.get(i));			
+					freeNeighbours.get(i).parent = currField;
+					visited.add(freeNeighbours.get(i));
+				}
+   			}
+   		}
+   		// Wenn Ziel nich erreicht wurde...
+	    return null;
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Bewegung des Hamsters anhand eines Pfades.
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	private void walkByPath(ArrayList<Field> path){
+		// Aktuelle Hamsterpositions
+		Field curHamsterPos = start;
+		// Alle Felder des Pfades durchgehen und ablaufen
+		for(Field nextField : path){
+			// Links-Rechts-Bewegung
+			switch(nextField.column - curHamsterPos.column){
+				case 1: // nach rechts gehen
+					moveHamster(Hamster.OST);
+					break;
+				case -1: // nach links gehen
+					moveHamster(Hamster.WEST);
+					break;
+			}
+			
+			// Hoch-Runter-Bewegung
+			switch(nextField.row - curHamsterPos.row){
+				case 1: // nach oben gehen
+					moveHamster(Hamster.SUED);
+					break;
+				case -1: // nach unten gehen
+					moveHamster(Hamster.NORD);
+					break;
+			}
+				
+			// Hamsterposition aktualisieren
+			curHamsterPos = nextField;
+		}
+	}
+	
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	// Hilfsmethoden
+	///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+	
+	// Pfad anhand der Paren-Child beziehung aus einem Feld aufbauen.
+	private ArrayList<Field> getPath(Field f){
+		boolean bStartFound = false;
+		ArrayList<Field> path = new ArrayList<Field>();
+		Field cf = f;
+		while(!bStartFound){
+			path.add(0,cf);
+			if(cf.parent == null)
+				bStartFound = true;
+			else
+				cf = cf.parent;
+		}
+		return path;
+	}
+	
+	// Feld ermittlen, auf dem der Hamster aktuell sitzt
+	private void getStart(){
+		start = new Field(sh.getSpalte(), sh.getReihe());
+	}
+	
+	// Feld ermitteln, auf dem das Korn liegt
+	private boolean getGrainField(){
+		int grainCounter = 0;
+		//Ermitteln, auf welchem Feld das Korn liegt
+		for(int col=0; col < fieldCol; col++){ // Spalten durchgehen
+			for(int row=0; row < fieldRow; row++){ // Reihe durchgehen
+				if(Territorium.getAnzahlKoerner(row,col) > 0 ){
+					goal = new Field(col,row); // Zielkoordinate setzen und Schleife abbrechen
+					grainCounter++;
+				}
+			}
+		}
+		if(grainCounter == 1){
+			return true;
+		}
+		return false;
+	}
+	
+	// Rotiert den Hamster in eine definierte Blickrichtung und bewegt ihn einen schritt vor.
+	private void moveHamster(int blickrichtung){
+		boolean moved = false;
+		while(!moved){
+			if(sh.getBlickrichtung() == blickrichtung){
+				sh.vor();
+				moved = true;
+			}
+			else {
+				sh.linksUm();
+			}
+		}
+	}
+
+	// Freie Nachbarfelder für Field cf ermitteln
+	private ArrayList<Field> getFreeNeighbours(Field cf){
+		ArrayList<Field> neigbours = new ArrayList<Field>();
+		// Feld oben prüfen
+		if(!Territorium.mauerDa(cf.row-1, cf.column)){
+			neigbours.add(new Field(cf.column, cf.row-1));
+		}
+		// Feld rechts prüfen)
+		if(!Territorium.mauerDa(cf.row, cf.column+1)){
+			neigbours.add(new Field(cf.column+1, cf.row));
+		}
+		// Feld unten prüfen)
+		if(!Territorium.mauerDa(cf.row+1, cf.column)){
+			neigbours.add(new Field(cf.column, cf.row+1));
+		}	
+		// Feld links prüfen
+		if(!Territorium.mauerDa(cf.row, cf.column-1)){
+			neigbours.add(new Field(cf.column-1, cf.row));
+		}
+		return neigbours;
+	}
+}

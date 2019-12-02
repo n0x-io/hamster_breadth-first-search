@@ -1,0 +1,22 @@
+/*object-oriented program*/import java.util.ArrayList;
+
+void main() {
+	Hamster h = Hamster.getStandardHamster();
+    Search srch = new Search(h);
+ 	
+ 	// Suche Initialisieren
+ 	if(srch.init()){
+ 	 	// Pfad suchen und entsprechend des Ergebnis eine Info ausgeben
+ 		Field f = srch.findPath();
+ 		if(f!=null){
+		 	if(srch.walkPathGetKorn(f))
+		 		h.schreib("Hamster hat Korn gefunden und aufgenommen");
+		 	else
+		 		h.schreib("Fehler: Hamster konnte Korn nicht aufnehmen!");
+		}
+		else 
+			h.schreib("Fehler: Hamster kann Korn nicht erreichen!");
+ 	}
+ 	else
+ 		h.schreib("Fehler: Initialisierung Fehlgeschlagen!\n(Hinweis: ggf. befindet sich kein oder meherer Körner auf dem Spielfeld.)");
+}

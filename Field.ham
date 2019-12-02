@@ -1,0 +1,11 @@
+/*class*/// Dient zum Halten von Informationen über Spielfelder.
+public class Field{
+	public int column;
+	public int row;
+	public Field parent;
+	
+	public Field(int column, int row){
+		this.row = row;
+		this.column = column;
+	}
+}
